@@ -17,10 +17,11 @@ import {
 
 interface EditorProviderProps {
 	projectId: string;
+	episodeId?: number;
 	children: React.ReactNode;
 }
 
-export function EditorProvider({ projectId, children }: EditorProviderProps) {
+export function EditorProvider({ projectId, episodeId, children }: EditorProviderProps) {
 	const activeProject = useEditor((e) => e.project.getActiveOrNull());
 	const router = useRouter();
 	const [isLoading, setIsLoading] = useState(true);
@@ -40,7 +41,12 @@ export function EditorProvider({ projectId, children }: EditorProviderProps) {
 				setIsLoading(true);
 				await initializeGpuRenderer();
 				editor.renderer.setDegraded(!isGpuAvailable());
-				await editor.project.loadProject({ id: projectId });
+				if (episodeId) {
+					await loadEpisodeProject({ editor, episodeId });
+				} else {
+					editor.project.setExternalSaveHandler({ handler: null });
+					await editor.project.loadProject({ id: projectId });
+				}
 
 				if (cancelled) return;
 
@@ -85,7 +91,7 @@ export function EditorProvider({ projectId, children }: EditorProviderProps) {
 		return () => {
 			cancelled = true;
 		};
-	}, [projectId, router]);
+	}, [episodeId, projectId, router]);
 
 	if (error) {
 		return (
@@ -125,6 +131,103 @@ export function EditorProvider({ projectId, children }: EditorProviderProps) {
 			{children}
 		</>
 	);
+}
+
+type RemoteMedia = {
+	media_id: string;
+	name: string;
+	type: "video" | "audio" | "image";
+	url: string;
+	mime_type: string;
+	size: number;
+	duration: number;
+	width?: number;
+	height?: number;
+};
+
+type RemoteProjectResponse = {
+	project: Record<string, unknown>;
+	revision: number;
+	media: RemoteMedia[];
+	media_bindings: Array<{ media_id: string; storyboard_id: number; video_work_id: number }>;
+	is_initialized: boolean;
+};
+
+async function loadEpisodeProject({ editor, episodeId }: { editor: EditorCore; episodeId: number }) {
+	const token = window.localStorage.getItem("rn-short-drama-auth-token") || "";
+	const headers: Record<string, string> = {};
+	if (token) headers.Authorization = `Bearer ${token}`;
+	const response = await fetch(`/api/v1/episodes/${episodeId}/opencut-project`, { headers });
+	const payload = await response.json().catch(() => null);
+	if (!response.ok) {
+		throw new Error(payload?.detail?.message || "无法读取剪辑工程");
+	}
+	const data = payload?.data as RemoteProjectResponse;
+	if (!data?.project || !Array.isArray(data.media)) {
+		throw new Error("剪辑工程数据不完整");
+	}
+	const project = deserializeProject({ project: data.project });
+	await editor.media.loadProjectMedia({ projectId: project.metadata.id });
+	const existingMediaIds = new Set(editor.media.getAssets().map((asset) => asset.id));
+	for (const media of data.media) {
+		if (existingMediaIds.has(media.media_id)) continue;
+		const mediaResponse = await fetch(media.url, { headers });
+		if (!mediaResponse.ok) throw new Error(`无法下载素材：${media.name}`);
+		const file = new File([await mediaResponse.blob()], media.name, { type: media.mime_type });
+		const saved = await editor.media.addMediaAsset({
+			projectId: project.metadata.id,
+			asset: {
+				id: media.media_id,
+				name: media.name,
+				type: media.type,
+				file,
+				duration: media.duration,
+				width: media.width,
+				height: media.height,
+			},
+		});
+		if (!saved) throw new Error(`无法保存素材：${media.name}`);
+	}
+
+	let revision = data.revision;
+	const saveRemoteProject = async (currentProject: import("@/project/types").TProject) => {
+		const saveResponse = await fetch(`/api/v1/episodes/${episodeId}/opencut-project`, {
+			method: "PUT",
+			headers: { ...headers, "Content-Type": "application/json" },
+			body: JSON.stringify({
+				expected_revision: revision,
+				project: currentProject,
+				media_bindings: data.media_bindings,
+			}),
+		});
+		const savePayload = await saveResponse.json().catch(() => null);
+		if (!saveResponse.ok) {
+			throw new Error(savePayload?.detail?.message || "剪辑工程保存失败");
+		}
+		revision = Number(savePayload?.data?.revision ?? revision);
+	};
+
+	await editor.project.hydrateExternalProject({ project });
+	editor.project.setExternalSaveHandler({ handler: saveRemoteProject });
+	if (!data.is_initialized) await saveRemoteProject(project);
+}
+
+function deserializeProject({ project }: { project: Record<string, unknown> }): import("@/project/types").TProject {
+	const metadata = project.metadata as Record<string, unknown>;
+	const scenes = (project.scenes as Array<Record<string, unknown>>).map((scene) => ({
+		...scene,
+		createdAt: new Date(String(scene.createdAt)),
+		updatedAt: new Date(String(scene.updatedAt)),
+	}));
+	return {
+		...project,
+		metadata: {
+			...metadata,
+			createdAt: new Date(String(metadata.createdAt)),
+			updatedAt: new Date(String(metadata.updatedAt)),
+		},
+		scenes,
+	} as import("@/project/types").TProject;
 }
 
 function EditorRuntimeBindings() {

@@ -3,6 +3,7 @@ import { withBotId } from "botid/next/config";
 import { withContentCollections } from "@content-collections/next";
 
 const nextConfig: NextConfig = {
+	basePath: process.env.OPENCUT_BASE_PATH || undefined,
 	compiler: {
 		removeConsole: process.env.NODE_ENV === "production",
 	},

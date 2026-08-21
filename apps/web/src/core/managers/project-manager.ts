@@ -37,6 +37,8 @@ export interface MigrationState {
 	projectName: string | null;
 }
 
+type ExternalSaveHandler = (project: TProject) => Promise<void>;
+
 export class ProjectManager {
 	private active: TProject | null = null;
 	private savedProjects: TProjectMetadata[] = [];
@@ -57,6 +59,7 @@ export class ProjectManager {
 		result: null,
 	};
 	private exportCancelRequested = false;
+	private externalSaveHandler: ExternalSaveHandler | null = null;
 
 	constructor(private editor: EditorCore) {}
 
@@ -204,8 +207,42 @@ export class ProjectManager {
 			await storageService.saveProject({ project: updatedProject });
 			this.active = updatedProject;
 			this.updateMetadata(updatedProject);
+			try {
+				await this.externalSaveHandler?.(updatedProject);
+			} catch (error) {
+				toast.error("剪辑工程同步失败", {
+					description: error instanceof Error ? error.message : undefined,
+				});
+				throw error;
+			}
 		} catch (error) {
 			console.error("Failed to save project:", error);
+		}
+	}
+
+	setExternalSaveHandler({ handler }: { handler: ExternalSaveHandler | null }): void {
+		this.externalSaveHandler = handler;
+	}
+
+	async hydrateExternalProject({ project }: { project: TProject }): Promise<void> {
+		this.editor.save.pause();
+		this.isLoading = true;
+		this.notify();
+		try {
+			this.editor.media.clearAllAssets();
+			this.editor.scenes.clearScenes();
+			await storageService.saveProject({ project });
+			this.active = project;
+			this.editor.scenes.initializeScenes({
+				scenes: project.scenes,
+				currentSceneId: project.currentSceneId,
+			});
+			await this.editor.media.loadProjectMedia({ projectId: project.metadata.id });
+			this.isInitialized = true;
+		} finally {
+			this.isLoading = false;
+			this.notify();
+			this.editor.save.resume();
 		}
 	}
 

@@ -35,13 +35,13 @@ import {
 	getBookmarkPreviewOverlaySource,
 } from "@/timeline/bookmarks/index";
 
-export default function Editor() {
+export default function Editor({ episodeId }: { episodeId?: number }) {
 	const params = useParams();
-	const projectId = params.project_id as string;
+	const projectId = episodeId ? `episode-${episodeId}` : (params.project_id as string);
 
 	return (
 		<MobileGate>
-			<EditorProvider projectId={projectId}>
+			<EditorProvider projectId={projectId} episodeId={episodeId}>
 				<div className="bg-background flex h-screen w-screen flex-col overflow-hidden">
 					<DegradedRendererBanner />
 					<EditorHeader />
