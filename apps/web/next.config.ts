@@ -1,9 +1,14 @@
 import type { NextConfig } from "next";
+import path from "node:path";
 import { withBotId } from "botid/next/config";
 import { withContentCollections } from "@content-collections/next";
 
 const nextConfig: NextConfig = {
 	basePath: process.env.OPENCUT_BASE_PATH || undefined,
+	outputFileTracingRoot: path.join(__dirname, "../.."),
+	turbopack: {
+		root: path.join(__dirname, "../.."),
+	},
 	compiler: {
 		removeConsole: process.env.NODE_ENV === "production",
 	},
