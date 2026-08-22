@@ -3,8 +3,13 @@ import path from "node:path";
 import { withBotId } from "botid/next/config";
 import { withContentCollections } from "@content-collections/next";
 
+const basePath = process.env.OPENCUT_BASE_PATH || "";
+
 const nextConfig: NextConfig = {
-	basePath: process.env.OPENCUT_BASE_PATH || undefined,
+	basePath: basePath || undefined,
+	env: {
+		NEXT_PUBLIC_OPENCUT_BASE_PATH: basePath,
+	},
 	outputFileTracingRoot: path.join(__dirname, "../.."),
 	turbopack: {
 		root: path.join(__dirname, "../.."),

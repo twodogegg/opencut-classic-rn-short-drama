@@ -11,7 +11,7 @@ export function Hero() {
 		<div className="flex min-h-[calc(100svh-4.5rem)] flex-col items-center justify-between px-4 text-center">
 			<Image
 				className="absolute top-0 left-0 -z-50 size-full object-cover opacity-85 invert dark:invert-0"
-				src="/landing-page-dark.png"
+				src={`${process.env.NEXT_PUBLIC_OPENCUT_BASE_PATH ?? ""}/landing-page-dark.png`}
 				height={1903.5}
 				width={1269}
 				alt="OpenCut video editor landing page background"
