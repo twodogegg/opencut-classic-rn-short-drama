@@ -157,7 +157,10 @@ async function loadEpisodeProject({ editor, episodeId }: { editor: EditorCore; e
 	const token = window.localStorage.getItem("rn-short-drama-auth-token") || "";
 	const headers: Record<string, string> = {};
 	if (token) headers.Authorization = `Bearer ${token}`;
-	const response = await fetch(`/api/v1/episodes/${episodeId}/opencut-project`, { headers });
+	const response = await requestWithRetry(
+		`/api/v1/episodes/${episodeId}/opencut-project`,
+		{ headers },
+	);
 	const payload = await response.json().catch(() => null);
 	if (!response.ok) {
 		throw new Error(payload?.detail?.message || "无法读取剪辑工程");
@@ -191,7 +194,7 @@ async function loadEpisodeProject({ editor, episodeId }: { editor: EditorCore; e
 
 	let revision = data.revision;
 	const saveRemoteProject = async (currentProject: import("@/project/types").TProject) => {
-		const saveResponse = await fetch(`/api/v1/episodes/${episodeId}/opencut-project`, {
+		const saveResponse = await requestWithRetry(`/api/v1/episodes/${episodeId}/opencut-project`, {
 			method: "PUT",
 			headers: { ...headers, "Content-Type": "application/json" },
 			body: JSON.stringify({
@@ -210,6 +213,14 @@ async function loadEpisodeProject({ editor, episodeId }: { editor: EditorCore; e
 	await editor.project.hydrateExternalProject({ project });
 	editor.project.setExternalSaveHandler({ handler: saveRemoteProject });
 	if (!data.is_initialized) await saveRemoteProject(project);
+}
+
+async function requestWithRetry(url: string, init: RequestInit): Promise<Response> {
+	let response = await fetch(url, init);
+	if (response.status !== 503) return response;
+	await new Promise((resolve) => window.setTimeout(resolve, 500));
+	response = await fetch(url, init);
+	return response;
 }
 
 function deserializeProject({ project }: { project: Record<string, unknown> }): import("@/project/types").TProject {
