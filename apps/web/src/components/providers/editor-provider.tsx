@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { EditorCore } from "@/core";
@@ -27,6 +27,10 @@ export function EditorProvider({ projectId, episodeId, children }: EditorProvide
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const { setLoadingProject } = useKeybindingsStore();
+	const initializationRef = useRef<{
+		key: string;
+		promise: Promise<void>;
+	} | null>(null);
 
 	useEffect(() => {
 		setLoadingProject(isLoading);
@@ -35,10 +39,14 @@ export function EditorProvider({ projectId, episodeId, children }: EditorProvide
 	useEffect(() => {
 		let cancelled = false;
 		const editor = EditorCore.getInstance();
+		const key = episodeId ? `episode:${episodeId}` : `project:${projectId}`;
+		setIsLoading(true);
+		setError(null);
 
-		const loadProject = async () => {
-			try {
-				setIsLoading(true);
+		if (initializationRef.current?.key !== key) {
+			initializationRef.current = {
+				key,
+				promise: (async () => {
 				await initializeGpuRenderer();
 				editor.renderer.setDegraded(!isGpuAvailable());
 				if (episodeId) {
@@ -47,14 +55,18 @@ export function EditorProvider({ projectId, episodeId, children }: EditorProvide
 					editor.project.setExternalSaveHandler({ handler: null });
 					await editor.project.loadProject({ id: projectId });
 				}
+				})(),
+			};
+		}
 
+		initializationRef.current.promise
+			.then(() => {
 				if (cancelled) return;
-
 				setIsLoading(false);
 				loadFontAtlas();
-			} catch (err) {
+			})
+			.catch(async (err) => {
 				if (cancelled) return;
-
 				const isNotFound =
 					err instanceof Error &&
 					(err.message.includes("not found") ||
@@ -63,11 +75,11 @@ export function EditorProvider({ projectId, episodeId, children }: EditorProvide
 				if (isNotFound) {
 					try {
 						const newProjectId = await editor.project.createNewProject({
-							name: "Untitled Project",
+							name: "未命名工程",
 						});
 						router.replace(`/editor/${newProjectId}`);
 					} catch (_createErr) {
-						setError("Failed to create project");
+						setError("创建工程失败");
 						setIsLoading(false);
 					}
 				} else {
@@ -78,15 +90,12 @@ export function EditorProvider({ projectId, episodeId, children }: EditorProvide
 						setError(wasmPanic);
 					} else {
 						setError(
-							err instanceof Error ? err.message : "Failed to load project",
+							err instanceof Error ? err.message : "加载工程失败",
 						);
 					}
 					setIsLoading(false);
 				}
-			}
-		};
-
-		loadProject();
+			});
 
 		return () => {
 			cancelled = true;
@@ -108,7 +117,7 @@ export function EditorProvider({ projectId, episodeId, children }: EditorProvide
 			<div className="bg-background flex h-screen w-screen items-center justify-center">
 				<div className="flex flex-col items-center gap-4">
 					<Loader2 className="text-muted-foreground size-8 animate-spin" />
-					<p className="text-muted-foreground text-sm">Loading project...</p>
+					<p className="text-muted-foreground text-sm">正在加载剪辑工程…</p>
 				</div>
 			</div>
 		);
@@ -119,7 +128,7 @@ export function EditorProvider({ projectId, episodeId, children }: EditorProvide
 			<div className="bg-background flex h-screen w-screen items-center justify-center">
 				<div className="flex flex-col items-center gap-4">
 					<Loader2 className="text-muted-foreground size-8 animate-spin" />
-					<p className="text-muted-foreground text-sm">Exiting project...</p>
+					<p className="text-muted-foreground text-sm">正在退出工程…</p>
 				</div>
 			</div>
 		);
@@ -211,6 +220,19 @@ async function loadEpisodeProject({ editor, episodeId }: { editor: EditorCore; e
 	};
 
 	await editor.project.hydrateExternalProject({ project });
+	const expectedScene = project.scenes.find(
+		(scene) => scene.id === project.currentSceneId,
+	) ?? project.scenes[0];
+	if (
+		expectedScene &&
+		editor.scenes.getActiveSceneOrNull()?.tracks.main.elements.length !==
+			expectedScene.tracks.main.elements.length
+	) {
+		editor.scenes.initializeScenes({
+			scenes: project.scenes,
+			currentSceneId: project.currentSceneId,
+		});
+	}
 	editor.project.setExternalSaveHandler({ handler: saveRemoteProject });
 	if (!data.is_initialized) await saveRemoteProject(project);
 }

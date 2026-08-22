@@ -63,6 +63,10 @@ function ProjectDropdown() {
 			console.error("Failed to prepare project exit:", error);
 		} finally {
 			editor.project.closeProject();
+			if (window.location.pathname.includes("/rn/episodes/")) {
+				window.history.back();
+				return;
+			}
 			router.push("/projects");
 		}
 	};
@@ -79,9 +83,9 @@ function ProjectDropdown() {
 					name: newName.trim(),
 				});
 			} catch (error) {
-				toast.error("Failed to rename project", {
+				toast.error("工程重命名失败", {
 					description:
-						error instanceof Error ? error.message : "Please try again",
+						error instanceof Error ? error.message : "请稍后重试",
 				});
 			} finally {
 				setOpenDialog(null);
@@ -97,9 +101,9 @@ function ProjectDropdown() {
 				});
 				router.push("/projects");
 			} catch (error) {
-				toast.error("Failed to delete project", {
+				toast.error("删除工程失败", {
 					description:
-						error instanceof Error ? error.message : "Please try again",
+						error instanceof Error ? error.message : "请稍后重试",
 				});
 			} finally {
 				setOpenDialog(null);
@@ -127,14 +131,14 @@ function ProjectDropdown() {
 						disabled={isExiting}
 						icon={<HugeiconsIcon icon={Logout05Icon} />}
 					>
-						Exit project
+						退出工程
 					</DropdownMenuItem>
 
 					<DropdownMenuItem
 						onClick={() => setOpenDialog("shortcuts")}
 						icon={<HugeiconsIcon icon={CommandIcon} />}
 					>
-						Shortcuts
+						快捷键
 					</DropdownMenuItem>
 
 					<DropdownMenuSeparator />
@@ -206,9 +210,9 @@ function EditableProjectName() {
 					name: newName,
 				});
 			} catch (error) {
-				toast.error("Failed to rename project", {
+				toast.error("工程重命名失败", {
 					description:
-						error instanceof Error ? error.message : "Please try again",
+						error instanceof Error ? error.message : "请稍后重试",
 				});
 			}
 		}

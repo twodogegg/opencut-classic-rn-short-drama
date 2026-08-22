@@ -83,7 +83,7 @@ export class ProjectManager {
 	}
 
 	async createNewProject({ name }: { name: string }): Promise<string> {
-		const mainScene = buildDefaultScene({ name: "Main scene", isMain: true });
+		const mainScene = buildDefaultScene({ name: "主时间线", isMain: true });
 		const newProject: TProject = {
 			metadata: {
 				id: generateUUID(),

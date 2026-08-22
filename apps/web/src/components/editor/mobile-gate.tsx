@@ -49,7 +49,7 @@ export function MobileGate({ children }: MobileGateProps) {
 			<div className="flex flex-1 flex-col justify-center gap-5 px-7">
 				<div className="flex flex-col gap-3">
 					<h1 className="text-foreground text-3xl font-bold tracking-tight">
-						Desktop only (for now)
+						当前请使用桌面端编辑
 					</h1>
 					<p className="text-muted-foreground text-sm leading-relaxed">
 						OpenCut isn't optimized for mobile or iPad yet. Things will break

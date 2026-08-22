@@ -41,8 +41,8 @@ export function MediaDragOverlay({
 			<div className="space-y-2">
 				<p className="text-muted-foreground max-w-sm text-xs">
 					{isProcessing
-						? `Processing your files (${progress}%)`
-						: "Drag and drop videos, photos, and audio files here"}
+						? `正在处理文件（${progress}%）`
+						: "拖放视频、图片或音频文件到这里"}
 				</p>
 			</div>
 

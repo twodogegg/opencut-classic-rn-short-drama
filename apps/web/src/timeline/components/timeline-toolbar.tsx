@@ -121,7 +121,7 @@ function ToolbarLeftSection() {
 			? getSourceAudioActionLabel({
 					element: selectedElement.element,
 				})
-			: "Extract audio";
+			: "提取音频";
 	const isSelectedSourceAudioSeparated =
 		selectedElement?.element.type === "video" &&
 		isSourceAudioSeparated({
@@ -144,19 +144,19 @@ function ToolbarLeftSection() {
 			<TooltipProvider delayDuration={500}>
 				<ToolbarButton
 					icon={<HugeiconsIcon icon={ScissorIcon} />}
-					tooltip="Split element"
+					tooltip="分割片段"
 					onClick={({ event }) => handleAction({ action: "split", event })}
 				/>
 
 				<ToolbarButton
 					icon={<HugeiconsIcon icon={AlignLeftIcon} />}
-					tooltip="Split left"
+					tooltip="向左分割"
 					onClick={({ event }) => handleAction({ action: "split-left", event })}
 				/>
 
 				<ToolbarButton
 					icon={<HugeiconsIcon icon={AlignRightIcon} />}
-					tooltip="Split right"
+					tooltip="向右分割"
 					onClick={({ event }) =>
 						handleAction({ action: "split-right", event })
 					}
@@ -177,7 +177,7 @@ function ToolbarLeftSection() {
 
 				<ToolbarButton
 					icon={<HugeiconsIcon icon={Copy01Icon} />}
-					tooltip="Duplicate element"
+					tooltip="复制片段"
 					onClick={({ event }) =>
 						handleAction({ action: "duplicate-selected", event })
 					}
@@ -185,14 +185,14 @@ function ToolbarLeftSection() {
 
 				<ToolbarButton
 					icon={<HugeiconsIcon icon={SnowIcon} />}
-					tooltip="Freeze frame (coming soon)"
+					tooltip="定格画面（即将推出）"
 					disabled={true}
 					onClick={({ event: _event }) => {}}
 				/>
 
 				<ToolbarButton
 					icon={<HugeiconsIcon icon={Delete02Icon} />}
-					tooltip="Delete element"
+					tooltip="删除片段"
 					onClick={({ event }) =>
 						handleAction({ action: "delete-selected", event })
 					}
@@ -204,7 +204,7 @@ function ToolbarLeftSection() {
 					<ToolbarButton
 						icon={<HugeiconsIcon icon={Bookmark02Icon} />}
 						isActive={isCurrentlyBookmarked}
-						tooltip={isCurrentlyBookmarked ? "Remove bookmark" : "Add bookmark"}
+						tooltip={isCurrentlyBookmarked ? "删除标记" : "添加标记"}
 						onClick={({ event }) =>
 							handleAction({ action: "toggle-bookmark", event })
 						}
@@ -252,7 +252,7 @@ function SceneSelector() {
 	return (
 		<div>
 			<SplitButton className="border-foreground/10 border">
-				<SplitButtonLeft>{currentScene?.name || "No Scene"}</SplitButtonLeft>
+				<SplitButtonLeft>{currentScene?.name || "无场景"}</SplitButtonLeft>
 				<SplitButtonSeparator />
 				<ScenesView>
 					<SplitButtonRight onClick={() => {}}>
@@ -286,14 +286,14 @@ function ToolbarRightSection({
 				<ToolbarButton
 					icon={<HugeiconsIcon icon={MagnetIcon} />}
 					isActive={snappingEnabled}
-					tooltip="Auto snapping"
+					tooltip="自动吸附"
 					onClick={() => toggleSnapping()}
 				/>
 
 				<ToolbarButton
 					icon={<OcRippleIcon size={24} className="scale-110" />}
 					isActive={rippleEditingEnabled}
-					tooltip="Ripple editing"
+					tooltip="波纹编辑"
 					onClick={() => toggleRippleEditing()}
 				/>
 			</TooltipProvider>
